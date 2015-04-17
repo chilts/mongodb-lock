@@ -1,0 +1,38 @@
+{
+  "name": "mongodb-lock",
+  "version": "0.1.0",
+  "description": "Locks which uses MongoDB's atomic operations.",
+  "main": "mongodb-lock.js",
+  "scripts": {
+    "test": "set -e; for FILE in test/*.js; do node $FILE; done"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "mongodb": "^1.4.19",
+    "tape": "^3.0.1"
+  },
+  "author": {
+    "name": "Andrew Chilton",
+    "email": "andychilton@gmail.com",
+    "url": "http://chilts.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/chilts/mongodb-lock.git"
+  },
+  "bugs": {
+    "url": "http://github.com/chilts/mongodb-lock/issues",
+    "mail": "andychilton@gmail.com"
+  },
+  "homepage": "https://github.com/chilts/mongodb-lock",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://chilts.mit-license.org/2015/"
+    }
+  ],
+  "keywords": [
+    "mongodb",
+    "lock"
+  ]
+}
