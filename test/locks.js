@@ -39,7 +39,7 @@ setup(function(db) {
     })
   })
 
-  test("test that the lock is released correctly", function(t) {
+  test("test that the lock can't be acquired twice", function(t) {
     t.plan(5)
 
     var lock = mongoDbLock(db, 'locks', 'another-lock')
@@ -112,6 +112,27 @@ setup(function(db) {
           t.ok(!err, '2. There was no error when acquring the lock')
           t.ok(code2.match(codeRegexp), '2. The lock code returned matches the code regexp')
           t.ok(code1 !== code2, '2. The 2nd code generated is different from the first')
+        })
+      })
+    })
+  })
+
+  test("test that a lock will fail a 2nd .release()", function(t) {
+    t.plan(6)
+
+    var lock = mongoDbLock(db, 'locks', 'double-release')
+
+    lock.acquire(function(err, code) {
+      t.ok(!err, '1. There was no error when acquring the lock')
+      t.ok(code.match(codeRegexp), '1. The lock code returned matches the code regexp')
+
+      lock.release(code, function(err, ok) {
+        t.ok(!err, 'No error when releasing this lock')
+        t.ok(ok, 'The lock was released correctly')
+
+        lock.release(code, function(err, ok) {
+          t.ok(!err, 'No error when releasing this lock')
+          t.ok(!ok, "The lock was not released (since it wasn't actually acquired")
         })
       })
     })

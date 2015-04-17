@@ -101,8 +101,9 @@ Lock.prototype.release = function release(code, callback) {
 
   // expire this lock if it is still valid
   var q1 = {
-    code   : code,
-    expire : { $gt : now },
+    code    : code,
+    expire  : { $gt : now },
+    expired : { $exists : false },
   }
   var u1 = {
     $set : {

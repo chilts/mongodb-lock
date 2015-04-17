@@ -92,6 +92,10 @@ uploadFiles.lock(function(err, code) {
 })
 ```
 
+### 0.2.0 (2015-04-17) ###
+
+* [FIX] made sure that a 2nd .release() doesn't return ok (ie. it didn't do anything)
+
 ### 0.1.0 (2015-04-17) ###
 
 * [NEW] added ability to add indexes to MongoDB
