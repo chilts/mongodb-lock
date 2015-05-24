@@ -25,12 +25,7 @@
     "mail": "andychilton@gmail.com"
   },
   "homepage": "https://github.com/chilts/mongodb-lock",
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://chilts.mit-license.org/2015/"
-    }
-  ],
+  "license": "MIT",
   "keywords": [
     "mongodb",
     "lock"
