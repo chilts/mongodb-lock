@@ -1,6 +1,6 @@
 {
   "name": "mongodb-lock",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Locks which uses MongoDB's atomic operations.",
   "main": "mongodb-lock.js",
   "scripts": {
