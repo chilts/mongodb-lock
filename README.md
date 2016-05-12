@@ -1,4 +1,4 @@
-# mongodb-queue #
+# mongodb-lock #
 
 [![Build Status](https://travis-ci.org/chilts/mongodb-lock.png)](https://travis-ci.org/chilts/mongodb-lock)
 [![NPM](https://nodei.co/npm/mongodb-lock.png?mini=true)](https://nodei.co/npm/mongodb-lock/)
