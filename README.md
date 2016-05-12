@@ -25,16 +25,15 @@ Now, acquire the lock:
 ```js
 lock.acquire(function(err, code) {
   if (err) {
-    console.error(code)
+    return console.error(code)
+  }
+
+  if ( code ) {
+    // lock was acquired
+    console.log('code=' + code)
   }
   else {
-    if ( code ) {
-      // lock was acquired
-      console.log('code=' + code)
-    }
-    else {
-      // lock was not acquired
-    }
+    // lock was not acquired
   }
 })
 ```
@@ -44,15 +43,14 @@ Once you have a lock, you have a 30 second timeout until the lock is released. Y
 ```js
 lock.release(code, function(err, ok) {
   if (err) {
-    console.error(err)
+    return console.error(err)
+  }
+
+  if (ok) {
+    console.log('Lock released ok')
   }
   else {
-    if (ok) {
-      console.log('Lock released ok')
-    }
-    else {
-      console.log('Lock was not released, perhaps it's already been released or timed out')
-    }
+    console.log("Lock was not released, perhaps it's already been released or timed out")
   }
 })
 ```
@@ -64,8 +62,9 @@ You should make sure any indexes have been added to the collection to make the q
 ```js
 lock.ensureIndexes(function(err) {
   if (err) {
-    console.error(err)
+    return console.error(err)
   }
+  // all ok
 })
 ```
 
