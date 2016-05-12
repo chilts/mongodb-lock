@@ -6,7 +6,7 @@
 A really light-weight way to get distributed locks with a nice API if you're already using MongoDB.
 ## Synopsis ##
 
-Create a connection to your MongoDB database, and use it to create a queue object:
+Create a connection to your MongoDB database, and use it to create a lock object:
 
 ```js
 var mongodb = require('mongodb')
