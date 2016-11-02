@@ -10,7 +10,7 @@ Create a connection to your MongoDB database, and use it to create a lock object
 
 ```js
 var mongodb = require('mongodb')
-var mongoDbLock = require('mongodb-lock)
+var mongoDbLock = require('mongodb-lock')
 
 var con = 'mongodb://localhost:27017/test'
 
