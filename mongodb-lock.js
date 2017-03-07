@@ -88,8 +88,7 @@ Lock.prototype.acquire = function(callback) {
         return callback(err)
       }
 
-      var doc = docs[0]
-      callback(null, doc.code)
+      callback(null, docs.ops ? docs.ops[0].code : docs[0].code)
     })
   })
 }
@@ -114,7 +113,11 @@ Lock.prototype.release = function release(code, callback) {
   self.col.findAndModify(q1, undefined /* sort order */, u1, function(err, oldDoc) {
     if (err) return callback(err)
 
-    if ( !oldDoc ) {
+    if(oldDoc && oldDoc.hasOwnProperty('value') && !oldDoc.value) {
+      return callback(null, false);
+    }
+
+    if (!oldDoc) {
       // there was nothing to unlock
       return callback(null, false)
     }
