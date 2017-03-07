@@ -80,7 +80,10 @@ var sendInvoices = mongoDbLock(db, 'locks', 'send-invoices')
 
 ## Options ##
 
-Currently there is only the option of the timeout. Currently the default is 30 seconds, but you can change it (in milliseconds):
+Currently there are two options: `timeout` and `removeExpired`
+
+### timeout ###
+Currently the default is 30 seconds, but you can change it (in milliseconds):
 
 ```js
 // lock for 60 seconds
@@ -90,6 +93,13 @@ uploadFiles.lock(function(err, code) {
   // locked for 60s
 })
 ```
+
+### removeExpired
+Currently the default value is `false`.
+
+When set to `true` this will remove expired lock records from MongoDB instead 
+of modifying them.
+
 
 ### 0.2.0 (2015-04-17) ###
 
