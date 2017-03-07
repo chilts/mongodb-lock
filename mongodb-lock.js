@@ -39,6 +39,8 @@ function Lock(mongoDbClient, collectionName, lockName, opts) {
   self.col = mongoDbClient.collection(collectionName)
   self.name = lockName
   self.timeout = opts.timeout || 30 * 1000 // default: 30 seconds
+  // Whether we want to remove old lock records or just modify them
+  self.removeExpired = opts.removeExpired || false
 }
 
 Lock.prototype.ensureIndexes = function(callback) {
@@ -66,7 +68,8 @@ Lock.prototype.acquire = function(callback) {
       expired : now,
     },
   }
-  self.col.findAndModify(q1, undefined /* sort order */, u1, function(err, oldLock) {
+
+  handleExpiredLocks(self, q1, undefined /* sort order */, u1, function(err, oldLock) {
     if (err) return callback(err)
 
     // now, try and insert a new lock
@@ -110,7 +113,7 @@ Lock.prototype.release = function release(code, callback) {
       expired : now,
     },
   }
-  self.col.findAndModify(q1, undefined /* sort order */, u1, function(err, oldDoc) {
+  handleExpiredLocks(self, q1, undefined /* sort order */, u1, function(err, oldDoc) {
     if (err) return callback(err)
 
     if(oldDoc && oldDoc.hasOwnProperty('value') && !oldDoc.value) {
@@ -125,4 +128,11 @@ Lock.prototype.release = function release(code, callback) {
     // unlocked correctly
     return callback(null, true)
   })
+}
+
+function handleExpiredLocks(lock, query, sortOrder, update, callback) {
+  if (lock.removeExpired) {
+    return lock.col.findAndRemove(query, sortOrder, callback)
+  }
+  return lock.col.findAndModify(query, sortOrder, update, callback)
 }

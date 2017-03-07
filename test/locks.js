@@ -157,6 +157,107 @@ setup(function(db) {
     })
   })
 
+  test("test that when removeExpired is false, released locks are not deleted from MongoDB", function(t) {
+    t.plan(6)
+
+    var lock = mongoDbLock(db, 'locks', 'modify-expired-on-release')
+
+    lock.acquire(function(err, code) {
+      t.ok(!err, 'There was no error when acquring the lock')
+      t.ok(code.match(codeRegexp), 'The lock code returned matches the code regexp')
+
+      lock.release(code, function(err, ok) {
+        t.ok(!err, 'There was no error releasing the expired lock, ie. the operation succeeded')
+        t.ok(ok, 'The lock was released')
+
+        db.collection('locks').count({ code: code }, function(err, count) {
+          t.ok(!err, 'There was no error reading record count from MongoDB')
+          t.equal(count, 1, 'The record has not been removed after release')
+        })
+      })
+    })
+  })
+
+  test("test that when removeExpired is false, timed out locks are not removed", function(t) {
+    t.plan(5)
+
+    var lockTimeout = 3000;
+
+    var lockOptions = {
+      timeout: lockTimeout
+    }
+
+    var lock = mongoDbLock(db, 'locks', 'modify-expired-on-release')
+
+    lock.acquire(function(err, code) {
+      t.ok(!err, 'There was no error when acquring the lock')
+      t.ok(code.match(codeRegexp), 'The lock code returned matches the code regexp')
+
+      setTimeout(function() {
+        lock.acquire(function(err, newCode) {
+          t.ok(!err, 'There was no error releasing the expired lock')
+          // Now check that the expired record has been removed
+          db.collection('locks').count({ code: code }, function(err, count) {
+            t.ok(!err, 'There was no error reading record count from MongoDB')
+            t.equal(count, 1, 'The record has not been removed after release')
+          })
+        })
+      }, lockTimeout + 100);
+    })
+  })
+
+  test("test that when removeExpired is true, released locks are deleted from MongoDB", function(t) {
+    t.plan(6)
+
+    var lockOptions = {
+      removeExpired: true
+    }
+    var lock = mongoDbLock(db, 'locks', 'remove-expired-on-release', lockOptions)
+
+    lock.acquire(function(err, code) {
+      t.ok(!err, 'There was no error when acquring the lock')
+      t.ok(code.match(codeRegexp), 'The lock code returned matches the code regexp')
+
+      lock.release(code, function(err, ok) {
+        t.ok(!err, 'There was no error releasing the expired lock, ie. the operation succeeded')
+        t.ok(ok, 'The lock was released')
+
+        db.collection('locks').count({ code: code }, function(err, count) {
+          t.ok(!err, 'There was no error reading record count from MongoDB')
+          t.equal(count, 0, 'The record had been removed after release')
+        })
+      })
+    })
+  })
+
+  test("test that when removeExpired is true, timed out locks are deleted from MongoDB", function(t) {
+    t.plan(5)
+
+    var lockTimeout = 3000;
+
+    var lockOptions = {
+      removeExpired: true,
+      timeout: lockTimeout
+    }
+    var lock = mongoDbLock(db, 'locks', 'remove-expired-on-timeout', lockOptions)
+
+    lock.acquire(function(err, code) {
+      t.ok(!err, 'There was no error when acquring the lock')
+      t.ok(code.match(codeRegexp), 'The lock code returned matches the code regexp')
+
+      setTimeout(function() {
+        lock.acquire(function(err, newCode) {
+          t.ok(!err, 'There was no error releasing the expired lock')
+          // Now check that the expired record has been removed
+          db.collection('locks').count({ code: code }, function(err, count) {
+            t.ok(!err, 'There was no error reading record count from MongoDB')
+            t.equal(count, 0, 'The record had been removed after release')
+          })
+        })
+      }, lockTimeout + 100);
+    })
+  })
+
   test('db.close()', function(t) {
     t.pass('db.close()')
     db.close()
