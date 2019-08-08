@@ -8,8 +8,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "mongodb": "^1.4.19",
-    "tape": "^3.0.1"
+    "mongodb": "^3.3.0-beta2",
+    "tape": "^4.11.0"
   },
   "author": {
     "name": "Andrew Chilton",

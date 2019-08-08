@@ -6,25 +6,27 @@ var mongoDbLock = require('../')
 
 var codeRegexp = new RegExp(/^[0-9a-f]{32}$/)
 
-setup(function(db) {
+setup(function(client, db) {
+
+  const col = db.collection('locks')
 
   test("test ensureIndexes works fine", function(t) {
     t.plan(3)
 
     // the lock name in this case doesn't matter, since we're not going to acquire this one
-    var lock = mongoDbLock(db, 'locks', 'whatever')
+    var lock = mongoDbLock(col, 'whatever')
     t.ok(lock, 'Lock object created ok')
 
     lock.ensureIndexes(function(err, result) {
-      t.ok(!err, 'There was no error when acquring the lock')
-      t.ok(!result, 'Nothing else is returned (nor should it be)')
+      t.ok(!err, 'There was no error when ensuring the indexes')
+      t.ok(result.ok, 'Index creation was okay')
     })
   })
 
   test("test that the lock can't be acquired twice", function(t) {
     t.plan(5)
 
-    var lock = mongoDbLock(db, 'locks', 'thisLock')
+    var lock = mongoDbLock(col, 'thisLock')
     t.ok(lock, 'Lock object created ok')
 
     lock.acquire(function(err, code) {
@@ -42,7 +44,7 @@ setup(function(db) {
   test("test that the lock can't be acquired twice", function(t) {
     t.plan(5)
 
-    var lock = mongoDbLock(db, 'locks', 'another-lock')
+    var lock = mongoDbLock(col, 'another-lock')
     t.ok(lock, 'Lock object created ok')
 
     lock.acquire(function(err, code) {
@@ -60,8 +62,8 @@ setup(function(db) {
   test("test that two locks are fine to acquire together", function(t) {
     t.plan(4)
 
-    var lock1 = mongoDbLock(db, 'locks', 'lock-1')
-    var lock2 = mongoDbLock(db, 'locks', 'lock-2')
+    var lock1 = mongoDbLock(col, 'lock-1')
+    var lock2 = mongoDbLock(col, 'lock-2')
 
     lock1.acquire(function(err, code) {
       t.ok(!err, '1. There was no error when acquring the lock')
@@ -77,7 +79,7 @@ setup(function(db) {
     t.plan(5)
 
     var threeSecs = 3 * 1000
-    var lock = mongoDbLock(db, 'locks', 'three-secs', { timeout : threeSecs })
+    var lock = mongoDbLock(col, 'three-secs', { timeout : threeSecs })
 
     lock.acquire(function(err, code1) {
       t.ok(!err, '1. There was no error when acquring the lock')
@@ -97,7 +99,7 @@ setup(function(db) {
     t.plan(7)
 
     var threeSecs = 3 * 1000
-    var lock = mongoDbLock(db, 'locks', 'release-me', { timeout : threeSecs })
+    var lock = mongoDbLock(col, 'release-me', { timeout : threeSecs })
 
     lock.acquire(function(err, code1) {
       t.ok(!err, '1. There was no error when acquring the lock')
@@ -120,7 +122,7 @@ setup(function(db) {
   test("test that a lock will fail a 2nd .release()", function(t) {
     t.plan(6)
 
-    var lock = mongoDbLock(db, 'locks', 'double-release')
+    var lock = mongoDbLock(col, 'double-release')
 
     lock.acquire(function(err, code) {
       t.ok(!err, '1. There was no error when acquring the lock')
@@ -142,7 +144,7 @@ setup(function(db) {
     t.plan(4)
 
     var threeSecs = 3 * 1000
-    var lock = mongoDbLock(db, 'locks', 'bad-release', { timeout : threeSecs })
+    var lock = mongoDbLock(col, 'bad-release', { timeout : threeSecs })
 
     lock.acquire(function(err, code) {
       t.ok(!err, 'There was no error when acquring the lock')
@@ -160,7 +162,7 @@ setup(function(db) {
   test("test that when removeExpired is false, released locks are not deleted from MongoDB", function(t) {
     t.plan(6)
 
-    var lock = mongoDbLock(db, 'locks', 'modify-expired-on-release')
+    var lock = mongoDbLock(col, 'modify-expired-on-release')
 
     lock.acquire(function(err, code) {
       t.ok(!err, 'There was no error when acquring the lock')
@@ -170,7 +172,7 @@ setup(function(db) {
         t.ok(!err, 'There was no error releasing the expired lock, ie. the operation succeeded')
         t.ok(ok, 'The lock was released')
 
-        db.collection('locks').count({ code: code }, function(err, count) {
+        db.collection('locks').countDocuments({ code: code }, function(err, count) {
           t.ok(!err, 'There was no error reading record count from MongoDB')
           t.equal(count, 1, 'The record has not been removed after release')
         })
@@ -187,7 +189,7 @@ setup(function(db) {
       timeout: lockTimeout
     }
 
-    var lock = mongoDbLock(db, 'locks', 'modify-expired-on-release')
+    var lock = mongoDbLock(col, 'modify-expired-on-release')
 
     lock.acquire(function(err, code) {
       t.ok(!err, 'There was no error when acquring the lock')
@@ -197,7 +199,7 @@ setup(function(db) {
         lock.acquire(function(err, newCode) {
           t.ok(!err, 'There was no error releasing the expired lock')
           // Now check that the expired record has been removed
-          db.collection('locks').count({ code: code }, function(err, count) {
+          db.collection('locks').countDocuments({ code: code }, function(err, count) {
             t.ok(!err, 'There was no error reading record count from MongoDB')
             t.equal(count, 1, 'The record has not been removed after release')
           })
@@ -212,7 +214,7 @@ setup(function(db) {
     var lockOptions = {
       removeExpired: true
     }
-    var lock = mongoDbLock(db, 'locks', 'remove-expired-on-release', lockOptions)
+    var lock = mongoDbLock(col, 'remove-expired-on-release', lockOptions)
 
     lock.acquire(function(err, code) {
       t.ok(!err, 'There was no error when acquring the lock')
@@ -222,7 +224,7 @@ setup(function(db) {
         t.ok(!err, 'There was no error releasing the expired lock, ie. the operation succeeded')
         t.ok(ok, 'The lock was released')
 
-        db.collection('locks').count({ code: code }, function(err, count) {
+        db.collection('locks').countDocuments({ code: code }, function(err, count) {
           t.ok(!err, 'There was no error reading record count from MongoDB')
           t.equal(count, 0, 'The record had been removed after release')
         })
@@ -239,7 +241,7 @@ setup(function(db) {
       removeExpired: true,
       timeout: lockTimeout
     }
-    var lock = mongoDbLock(db, 'locks', 'remove-expired-on-timeout', lockOptions)
+    var lock = mongoDbLock(col, 'remove-expired-on-timeout', lockOptions)
 
     lock.acquire(function(err, code) {
       t.ok(!err, 'There was no error when acquring the lock')
@@ -258,9 +260,9 @@ setup(function(db) {
     })
   })
 
-  test('db.close()', function(t) {
-    t.pass('db.close()')
-    db.close()
+  test('client.close()', function(t) {
+    t.pass('client.close()')
+    client.close()
     t.end()
   })
 

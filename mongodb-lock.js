@@ -17,71 +17,69 @@ function id() {
   return crypto.randomBytes(16).toString('hex')
 }
 
-module.exports = function(mongoDbClient, collectionName, lockName, opts) {
-  return new Lock(mongoDbClient, collectionName, lockName, opts)
+module.exports = function(col, lockName, opts) {
+  return new Lock(col, lockName, opts)
 }
 
 // the Lock object itself
-function Lock(mongoDbClient, collectionName, lockName, opts) {
-  if ( !mongoDbClient ) {
-    throw new Error("mongodb-lock: provide a mongodb.MongoClient")
-  }
-  if ( !collectionName ) {
-    throw new Error("mongodb-lock: provide a collectionName")
+function Lock(col, lockName, opts) {
+  if ( !col ) {
+    throw new Error("mongodb-lock: provide a collection")
   }
   if ( !lockName ) {
     throw new Error("mongodb-lock: provide a lockName")
   }
   opts = opts || {}
 
-  var self = this
+  this.col = col
+  this.name = lockName
+  this.timeout = opts.timeout || 30 * 1000 // default: 30 seconds
 
-  self.col = mongoDbClient.collection(collectionName)
-  self.name = lockName
-  self.timeout = opts.timeout || 30 * 1000 // default: 30 seconds
-  // Whether we want to remove old lock records or just modify them
-  self.removeExpired = opts.removeExpired || false
+  // Whether we want to remove old lock records or just modify them.
+  this.removeExpired = opts.removeExpired || false
 }
 
 Lock.prototype.ensureIndexes = function(callback) {
-  var self = this
-
-  self.col.ensureIndex({ name : 1 }, { unique : true }, function(err) {
-    if (err) return callback(err)
-    callback()
-  })
+  const indexes = [
+    {
+      name: 'name',
+      key: {
+        name: 1,
+      },
+      unique: true,
+    }
+  ]
+  this.col.createIndexes(indexes, { unique : true }, callback)
 }
 
 Lock.prototype.acquire = function(callback) {
-  var self = this
-
   var now = Date.now()
 
   // firstly, expire any locks if they have timed out
-  var q1 = {
-    name   : self.name,
+  var query = {
+    name   : this.name,
     expire : { $lt : now },
   }
-  var u1 = {
+  var update = {
     $set : {
-      name    : self.name + ':' + now,
+      name    : this.name + ':' + now,
       expired : now,
     },
   }
 
-  handleExpiredLocks(self, q1, undefined /* sort order */, u1, function(err, oldLock) {
+  this.handleExpiredLocks(query, update, (err, oldLock) => {
     if (err) return callback(err)
 
     // now, try and insert a new lock
     var code = id()
     var doc = {
-      name     : self.name,
+      name     : this.name,
       code     : code,
-      expire   : now + self.timeout,
+      expire   : now + this.timeout,
       inserted : now,
     }
 
-    self.col.insert(doc, function(err, docs) {
+    this.col.insertOne(doc, (err, docs) => {
       if (err) {
         if (err.code === 11000 ) {
           // there is currently a valid lock in the datastore
@@ -97,30 +95,29 @@ Lock.prototype.acquire = function(callback) {
 }
 
 Lock.prototype.release = function release(code, callback) {
-  var self = this
-
   var now = Date.now()
 
   // expire this lock if it is still valid
-  var q1 = {
+  var query = {
     code    : code,
     expire  : { $gt : now },
     expired : { $exists : false },
   }
-  var u1 = {
+  var update = {
     $set : {
-      name    : self.name + ':' + now,
+      name    : this.name + ':' + now,
       expired : now,
     },
   }
-  handleExpiredLocks(self, q1, undefined /* sort order */, u1, function(err, oldDoc) {
+
+  this.handleExpiredLocks(query, update, (err, oldLock) => {
     if (err) return callback(err)
 
-    if(oldDoc && oldDoc.hasOwnProperty('value') && !oldDoc.value) {
+    if(oldLock && oldLock.hasOwnProperty('value') && !oldLock.value) {
       return callback(null, false);
     }
 
-    if (!oldDoc) {
+    if (!oldLock) {
       // there was nothing to unlock
       return callback(null, false)
     }
@@ -130,9 +127,10 @@ Lock.prototype.release = function release(code, callback) {
   })
 }
 
-function handleExpiredLocks(lock, query, sortOrder, update, callback) {
-  if (lock.removeExpired) {
-    return lock.col.findAndRemove(query, sortOrder, callback)
+Lock.prototype.handleExpiredLocks = function handleExpiredLocks(query, update, callback) {
+  if (this.removeExpired) {
+    this.col.findOneAndDelete(query, callback)
+    return
   }
-  return lock.col.findAndModify(query, sortOrder, update, callback)
+  this.col.findOneAndUpdate(query, update, callback)
 }

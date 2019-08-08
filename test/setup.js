@@ -1,21 +1,25 @@
-var mongodb = require('mongodb')
+const mongodb = require('mongodb')
 
-var conStr = 'mongodb://localhost:27017/mongodb-lock'
+const conStr = 'mongodb://localhost:27017/'
+const dbName = 'mongodb-lock'
+
+const collections = [
+  'default', 'locks', 'lock2',
+]
 
 module.exports = function(callback) {
-  mongodb.MongoClient.connect(conStr, function(err, db) {
+  mongodb.MongoClient.connect(conStr, (err, client) => {
     if (err) throw err
-    var done = 0
+
+    const db = client.db(dbName)
 
     // let's empty out some collections to make sure there are no messages
-    var collections = [
-      'default', 'locks', 'lock2',
-    ]
-    collections.forEach(function(col) {
-      db.collection(col).remove(function() {
+    let done = 0
+    collections.forEach(col => {
+      db.collection(col).deleteMany(() => {
         done += 1
         if ( done === collections.length ) {
-          callback(db)
+          callback(client, db)
         }
       })
     })
