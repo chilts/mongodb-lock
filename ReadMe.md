@@ -5,10 +5,10 @@
 
 A really light-weight way to get distributed locks with a nice API if you're already using MongoDB.
 
-## Version 1.0 ##
+## Version 1.0 !!! ##
 
 Please note that the API has changed for v1.0 (compared to v0.4 and previously). This fits in with
-[MongoDB](https://www.npmjs.com/package/mongodb) v3 and above.
+[MongoDB](https://www.npmjs.com/package/mongodb) Driver v3 and above.
 
 ## Synopsis ##
 
